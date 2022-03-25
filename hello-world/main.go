@@ -1,12 +1,13 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 
-	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 )
 
@@ -21,29 +22,31 @@ var (
 	ErrNon200Response = errors.New("Non 200 Response found")
 )
 
-func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+type MyEvent struct {
+	Hello string `json:"hello"`
+}
+
+func handler(ctx context.Context, name MyEvent) (string, error) {
+	log.Printf("name: %v", name)
 	resp, err := http.Get(DefaultHTTPGetAddress)
 	if err != nil {
-		return events.APIGatewayProxyResponse{}, err
+		return "", err
 	}
 
 	if resp.StatusCode != 200 {
-		return events.APIGatewayProxyResponse{}, ErrNon200Response
+		return "", ErrNon200Response
 	}
 
 	ip, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return events.APIGatewayProxyResponse{}, err
+		return "", err
 	}
 
 	if len(ip) == 0 {
-		return events.APIGatewayProxyResponse{}, ErrNoIP
+		return "", ErrNoIP
 	}
 
-	return events.APIGatewayProxyResponse{
-		Body:       fmt.Sprintf("Hello, %v", string(ip)),
-		StatusCode: 200,
-	}, nil
+	return fmt.Sprintf("Hello, %v", string(ip)), nil
 }
 
 func main() {
