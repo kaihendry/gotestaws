@@ -8,5 +8,3 @@ Resources:
       CodeUri: hello-world/
       Handler: hello-world
       Runtime: go1.x
-      Architectures:
-        - x86_64
