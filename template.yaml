@@ -8,3 +8,12 @@ Resources:
       CodeUri: hello-world/
       Handler: hello-world
       Runtime: go1.x
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref TestBucket
+      Policies:
+      - S3FullAccessPolicy:
+          BucketName: !Ref TestBucket
+
+  TestBucket:
+    Type: AWS::S3::Bucket

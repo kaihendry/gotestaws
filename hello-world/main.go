@@ -1,40 +1,36 @@
 package main
 
 import (
+	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/aws/aws-lambda-go/lambda"
-)
-
-var (
-	// DefaultHTTPGetAddress Default Address
-	DefaultHTTPGetAddress = "https://checkip.amazonaws.com"
-
-	// ErrNoIP No IP found in response
-	ErrNoIP = errors.New("No IP in HTTP response")
-
-	// ErrNon200Response non 200 status code in response
-	ErrNon200Response = errors.New("Non 200 Response found")
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
 
 type MyEvent struct {
 	Hello string `json:"hello"`
 }
 
+// https://aws.github.io/aws-sdk-go-v2/docs/unit-testing/
+
 func handler(ctx context.Context, name MyEvent) (string, error) {
 	log.Printf("name: %v", name)
-	resp, err := http.Get(DefaultHTTPGetAddress)
+	resp, err := http.Get("https://checkip.amazonaws.com")
 	if err != nil {
 		return "", err
 	}
 
 	if resp.StatusCode != 200 {
-		return "", ErrNon200Response
+		return "", fmt.Errorf("Non 200 Response found")
 	}
 
 	ip, err := ioutil.ReadAll(resp.Body)
@@ -42,11 +38,21 @@ func handler(ctx context.Context, name MyEvent) (string, error) {
 		return "", err
 	}
 
-	if len(ip) == 0 {
-		return "", ErrNoIP
+	cfg, err := config.LoadDefaultConfig(context.TODO())
+	if err != nil {
+		return "", err
 	}
 
-	return fmt.Sprintf("Hello, %v", string(ip)), nil
+	client := s3.NewFromConfig(cfg)
+
+	response, err := client.PutObject(context.TODO(), &s3.PutObjectInput{
+		Bucket: aws.String(os.Getenv("BUCKET_NAME")),
+		Key:    aws.String("ip-address"),
+		ACL:    types.ObjectCannedACLPublicRead,
+		Body:   bytes.NewReader(ip),
+	})
+
+	return fmt.Sprintf("Hello, %v", response), nil
 }
 
 func main() {

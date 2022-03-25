@@ -23,7 +23,8 @@ build:
 	sam build --use-container
 
 validate:
-	aws cloudformation validate-template --template-body file://template.yml
+	sam validate
+	aws cloudformation validate-template --template-body file://template.yaml
 
 destroy:
 	aws cloudformation delete-stack --stack-name $(STACK)
