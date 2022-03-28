@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 
@@ -16,34 +15,41 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
 
-type MyEvent struct {
-	Hello string `json:"hello"`
-}
-
 type S3PutObjectAPI interface {
 	PutObject(ctx context.Context,
 		params *s3.PutObjectInput,
 		optFns ...func(*s3.Options)) (*s3.PutObjectOutput, error)
 }
 
-func StoreIpAddress(c context.Context, api S3PutObjectAPI, input *s3.PutObjectInput) (*s3.PutObjectOutput, error) {
-	return api.PutObject(c, input)
+// we use S3PutObjectAPI because we can mock it in our tests
+func storeIpAddress(api S3PutObjectAPI, ip []byte) error {
+	input := &s3.PutObjectInput{
+		Bucket: aws.String(os.Getenv("BUCKET_NAME")), // test env is used
+		Key:    aws.String("ip-address"),             // ensure object name
+		ACL:    types.ObjectCannedACLPublicRead,      // ensure ACL is "public-read"
+		Body:   bytes.NewReader(ip),
+	}
+	_, err := api.PutObject(context.TODO(), input)
+	return err
 }
 
-// https://aws.github.io/aws-sdk-go-v2/docs/unit-testing/
-
-func handler(ctx context.Context, name MyEvent) error {
-	log.Printf("name: %v", name)
+func whatIsMyIp() (ip []byte, err error) {
 	resp, err := http.Get("https://checkip.amazonaws.com")
 	if err != nil {
-		return err
+		return ip, err
 	}
 
+	// only "business logic", test an error thrown if the response is not 200 - aka error handling
 	if resp.StatusCode != 200 {
-		return fmt.Errorf("failed to retrieve IP address; StatusCode: %d", resp.StatusCode)
+		return ip, fmt.Errorf("failed to retrieve IP address; StatusCode: %d", resp.StatusCode)
 	}
 
-	ip, err := ioutil.ReadAll(resp.Body)
+	return ioutil.ReadAll(resp.Body)
+}
+
+func handler(ctx context.Context) error {
+
+	ip, err := whatIsMyIp()
 	if err != nil {
 		return err
 	}
@@ -54,17 +60,7 @@ func handler(ctx context.Context, name MyEvent) error {
 	}
 
 	client := s3.NewFromConfig(cfg)
-
-	input := &s3.PutObjectInput{
-		Bucket: aws.String(os.Getenv("BUCKET_NAME")),
-		Key:    aws.String("ip-address"),
-		ACL:    types.ObjectCannedACLPublicRead,
-		Body:   bytes.NewReader(ip),
-	}
-
-	_, err = StoreIpAddress(context.TODO(), client, input)
-	return err
-
+	return storeIpAddress(client, ip)
 }
 
 func main() {
