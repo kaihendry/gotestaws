@@ -33,8 +33,8 @@ func storeIpAddress(api S3PutObjectAPI, ip []byte) error {
 	return err
 }
 
-func whatIsMyIp() (ip []byte, err error) {
-	resp, err := http.Get("https://checkip.amazonaws.com")
+func whatIsMyIp(url string) (ip []byte, err error) {
+	resp, err := http.Get(url)
 	if err != nil {
 		return ip, err
 	}
@@ -49,7 +49,7 @@ func whatIsMyIp() (ip []byte, err error) {
 
 func handler(ctx context.Context) error {
 
-	ip, err := whatIsMyIp()
+	ip, err := whatIsMyIp("https://checkip.amazonaws.com")
 	if err != nil {
 		return err
 	}

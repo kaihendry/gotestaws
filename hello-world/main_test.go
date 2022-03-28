@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
 
@@ -53,5 +55,18 @@ func Test_storeIpAddress(t *testing.T) {
 				t.Errorf("storeIpAddress() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
+	}
+}
+
+func TestGetFixedValue(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`1.1.1.1`))
+	}))
+	defer server.Close()
+
+	value, _ := whatIsMyIp(server.URL)
+	if string(value) != "1.1.1.1" {
+		t.Errorf("Expected 'fixed', got %s", value)
 	}
 }
