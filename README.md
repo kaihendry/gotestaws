@@ -2,6 +2,8 @@
 
 Learning example of how best to "business logic".
 
+https://aws.github.io/aws-sdk-go-v2/docs/unit-testing/
+
 # Improvement ideas
 
 - Use [net.IP](https://pkg.go.dev/net#IP)
