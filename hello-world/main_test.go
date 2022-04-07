@@ -66,7 +66,5 @@ func TestGetFixedValue(t *testing.T) {
 	defer server.Close()
 
 	value, _ := whatIsMyIp(server.URL)
-	if string(value) != "1.1.1.1" {
-		t.Errorf("Expected 'fixed', got %s", value)
-	}
+	assert.Equal(t, "1.1.1.1", string(value))
 }

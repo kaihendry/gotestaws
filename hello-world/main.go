@@ -15,6 +15,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
 
+// In a bigger project you would perhaps build a central list of the AWS APIs you rely on and
+// import github.com/mycompany/myproject/pkg/api/aws making the storeIpAddress api a more generic awsClient aws.Client
 type S3PutObjectAPI interface {
 	PutObject(ctx context.Context,
 		params *s3.PutObjectInput,
